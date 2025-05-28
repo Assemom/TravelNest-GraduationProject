@@ -23,6 +23,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
@@ -33,15 +37,18 @@ public class SecurityConfig {
     private final AuthEntryPointJwt unauthorizedHandler;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenFilter authTokenFilter;
+    private final CorsConfiguration corsConfiguration;
 
     public SecurityConfig(@Qualifier("userDetailsServiceImpl") UserDetailsService userDetailsService,
                           AuthEntryPointJwt unauthorizedHandler,
                           PasswordEncoder passwordEncoder,
-                          AuthTokenFilter authTokenFilter) {
+                          AuthTokenFilter authTokenFilter,
+                          CorsConfiguration corsConfiguration) {
         this.userDetailsService = userDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
         this.passwordEncoder = passwordEncoder;
         this.authTokenFilter = authTokenFilter;
+        this.corsConfiguration = corsConfiguration;
     }
 
     @Bean
@@ -60,6 +67,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(request -> corsConfiguration))
                 .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(unauthorizedHandler)
@@ -70,6 +78,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/manager/**").hasRole("MANAGER")
                         .requestMatchers("/api/tourist/**").hasRole("TOURIST")
